@@ -1,0 +1,44 @@
+# ===============================
+# GENERAL
+# ===============================
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# ===============================
+# FRONTEND (React / Vite)
+# ===============================
+node_modules/
+dist/
+build/
+frontend/node_modules/
+frontend/dist/
+
+# ===============================
+# BACKEND (Python / Django)
+# ===============================
+__pycache__/
+*.py[cod]
+*.sqlite3
+db.sqlite3
+venv/
+env/
+backend/__pycache__/
+backend/db.sqlite3
+backend/venv/
+
+# ===============================
+# TESTING / COVERAGE
+# ===============================
+.coverage
+htmlcov/
+
+# ===============================
+# OS / TEMP FILES
+# ===============================
+*.swp
+*.tmp
