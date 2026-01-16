@@ -1,51 +1,70 @@
 import api from './api'
-import { API_ENDPOINTS } from '../utils/constants'
 
 export interface Trainer {
-  id: string
-  name: string
+  id: number
+  username: string
   email: string
-  specialization: string
-  experience: number
+  first_name: string
+  last_name: string
+  phone?: string
+  profile_image?: string
   bio?: string
-  image?: string
-  createdAt: string
+  role: string
+  is_active: boolean
+  created_at: string
 }
 
-export interface TrainerResponse {
+export interface TrainerListResponse {
   data: Trainer[]
-  total: number
-  page: number
-  pageSize: number
+  total?: number
 }
 
-// Get all trainers
-export const getTrainers = async (page: number = 1, pageSize: number = 10): Promise<TrainerResponse> => {
-  const response = await api.get<TrainerResponse>(API_ENDPOINTS.TRAINERS.GET_ALL, {
-    params: { page, pageSize },
-  })
-  return response.data
+// Trainer Service API calls
+const trainerService = {
+  // Get all trainers
+  getAll: async (): Promise<Trainer[]> => {
+    try {
+      const response = await api.get('/trainers/')
+      return response.data.results || response.data
+    } catch (error) {
+      console.error('Failed to fetch trainers:', error)
+      return []
+    }
+  },
+
+  // Get trainer by ID
+  getById: async (id: number): Promise<Trainer | null> => {
+    try {
+      const response = await api.get(`/trainers/${id}/`)
+      return response.data
+    } catch (error) {
+      console.error(`Failed to fetch trainer ${id}:`, error)
+      return null
+    }
+  },
+
+  // Create trainer
+  create: async (data: Partial<Trainer>): Promise<Trainer> => {
+    const response = await api.post('/trainers/', data)
+    return response.data
+  },
+
+  // Update trainer
+  update: async (id: number, data: Partial<Trainer>): Promise<Trainer> => {
+    const response = await api.put(`/trainers/${id}/`, data)
+    return response.data
+  },
+
+  // Partial update trainer
+  partialUpdate: async (id: number, data: Partial<Trainer>): Promise<Trainer> => {
+    const response = await api.patch(`/trainers/${id}/`, data)
+    return response.data
+  },
+
+  // Delete trainer
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/trainers/${id}/`)
+  },
 }
 
-// Get trainer by ID
-export const getTrainerById = async (id: string): Promise<Trainer> => {
-  const response = await api.get<Trainer>(API_ENDPOINTS.TRAINERS.GET_BY_ID(id))
-  return response.data
-}
-
-// Create trainer
-export const createTrainer = async (payload: Omit<Trainer, 'id' | 'createdAt'>): Promise<Trainer> => {
-  const response = await api.post<Trainer>(API_ENDPOINTS.TRAINERS.CREATE, payload)
-  return response.data
-}
-
-// Update trainer
-export const updateTrainer = async (id: string, payload: Partial<Trainer>): Promise<Trainer> => {
-  const response = await api.put<Trainer>(API_ENDPOINTS.TRAINERS.UPDATE(id), payload)
-  return response.data
-}
-
-// Delete trainer
-export const deleteTrainer = async (id: string): Promise<void> => {
-  await api.delete(API_ENDPOINTS.TRAINERS.DELETE(id))
-}
+export default trainerService

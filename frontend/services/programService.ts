@@ -1,52 +1,67 @@
 import api from './api'
-import { API_ENDPOINTS } from '../utils/constants'
 
 export interface Program {
-  id: string
+  id: number
   name: string
+  program_type: string
   description: string
-  category: string
-  duration: number
-  level: 'beginner' | 'intermediate' | 'advanced'
-  price?: number
+  duration_weeks: number
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced'
+  price: number
   image?: string
-  createdAt: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
 }
 
-export interface ProgramResponse {
-  data: Program[]
-  total: number
-  page: number
-  pageSize: number
+// Program Service API calls
+const programService = {
+  // Get all programs
+  getAll: async (): Promise<Program[]> => {
+    try {
+      const response = await api.get('/programs/')
+      return response.data.results || response.data
+    } catch (error) {
+      console.error('Failed to fetch programs:', error)
+      return []
+    }
+  },
+
+  // Get program by ID
+  getById: async (id: number): Promise<Program | null> => {
+    try {
+      const response = await api.get(`/programs/${id}/`)
+      return response.data
+    } catch (error) {
+      console.error(`Failed to fetch program ${id}:`, error)
+      return null
+    }
+  },
+
+  // Create program
+  create: async (data: Partial<Program>): Promise<Program> => {
+    const response = await api.post('/programs/', data)
+    return response.data
+  },
+
+  // Update program
+  update: async (id: number, data: Partial<Program>): Promise<Program> => {
+    const response = await api.put(`/programs/${id}/`, data)
+    return response.data
+  },
+
+  // Partial update program
+  partialUpdate: async (id: number, data: Partial<Program>): Promise<Program> => {
+    const response = await api.patch(`/programs/${id}/`, data)
+    return response.data
+  },
+
+  // Delete program
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/programs/${id}/`)
+  },
 }
 
-// Get all programs
-export const getPrograms = async (page: number = 1, pageSize: number = 10): Promise<ProgramResponse> => {
-  const response = await api.get<ProgramResponse>(API_ENDPOINTS.PROGRAMS.GET_ALL, {
-    params: { page, pageSize },
-  })
-  return response.data
-}
-
-// Get program by ID
-export const getProgramById = async (id: string): Promise<Program> => {
-  const response = await api.get<Program>(API_ENDPOINTS.PROGRAMS.GET_BY_ID(id))
-  return response.data
-}
-
-// Create program
-export const createProgram = async (payload: Omit<Program, 'id' | 'createdAt'>): Promise<Program> => {
-  const response = await api.post<Program>(API_ENDPOINTS.PROGRAMS.CREATE, payload)
-  return response.data
-}
-
-// Update program
-export const updateProgram = async (id: string, payload: Partial<Program>): Promise<Program> => {
-  const response = await api.put<Program>(API_ENDPOINTS.PROGRAMS.UPDATE(id), payload)
-  return response.data
-}
-
-// Delete program
-export const deleteProgram = async (id: string): Promise<void> => {
+export default programService
   await api.delete(API_ENDPOINTS.PROGRAMS.DELETE(id))
 }

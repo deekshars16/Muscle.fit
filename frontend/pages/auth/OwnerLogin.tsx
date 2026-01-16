@@ -9,53 +9,58 @@ const OwnerLogin: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Default owner credentials for demo
-  const DEFAULT_EMAIL = 'owner@muscle.fit'
-  const DEFAULT_PASSWORD = 'Owner@123'
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    console.log('Form submitted')
+    
     setError('')
     setLoading(true)
 
-    // Validate email and password are not empty
+    // Validate inputs
     if (!email || !password) {
       setError('Please enter email and password')
       setLoading(false)
       return
     }
 
-    // Simulate login
-    setTimeout(() => {
-      // Store auth info
+    try {
+      console.log('Saving to localStorage...')
       localStorage.setItem('authToken', 'owner_token_' + Date.now())
       localStorage.setItem('role', 'owner')
       localStorage.setItem('userEmail', email)
-      navigate('/owner/dashboard')
-    }, 500)
+      
+      console.log('Token saved. authToken:', localStorage.getItem('authToken'))
+      console.log('Navigating to dashboard...')
+      
+      setLoading(false)
+      
+      // Navigate to dashboard
+      navigate('/owner/dashboard', { replace: true })
+      
+      console.log('Navigate called')
+    } catch (err) {
+      console.error('Error:', err)
+      setError('Login failed')
+      setLoading(false)
+    }
   }
 
   return (
     <section className="min-h-screen bg-gradient-to-br from-purple-50 to-white dark:from-gray-900 dark:to-black py-12 px-4 flex items-center justify-center transition-colors duration-300">
       <div className="w-full max-w-md">
-        {/* Card Container */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-purple-100 dark:border-gray-700 transition-colors duration-300">
-          {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Owner Login !</h1>
             <p className="text-gray-600 dark:text-gray-400">Manage your gym operations and trainers</p>
           </div>
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-200 px-4 py-3 rounded-lg mb-6 text-sm transition-colors duration-300">
               {error}
             </div>
           )}
 
-          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-5 mb-6">
-            {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Email Address</label>
               <div className="relative">
@@ -71,7 +76,6 @@ const OwnerLogin: React.FC = () => {
               </div>
             </div>
 
-            {/* Password Field */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Password</label>
               <div className="relative">
@@ -87,7 +91,6 @@ const OwnerLogin: React.FC = () => {
               </div>
             </div>
 
-            {/* Login Button */}
             <button
               type="submit"
               disabled={loading}
@@ -97,7 +100,6 @@ const OwnerLogin: React.FC = () => {
             </button>
           </form>
 
-          {/* Footer Link */}
           <p className="text-center mt-6 text-gray-600 dark:text-gray-400 text-sm transition-colors duration-300">
             Not an owner?{' '}
             <button

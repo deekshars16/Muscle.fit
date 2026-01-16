@@ -11,6 +11,11 @@ const Header: React.FC = () => {
   const { theme, toggleTheme } = useTheme()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
+  // Hide header on protected routes
+  if (location.pathname.startsWith('/owner/')) {
+    return null
+  }
+
   const handleNavigation = (sectionId: string) => {
     if (location.pathname === '/') {
       const element = document.getElementById(sectionId)
