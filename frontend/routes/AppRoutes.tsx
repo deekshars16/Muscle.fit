@@ -11,6 +11,7 @@ import MembersPage from '../pages/owner/Members'
 import PackagesPage from '../pages/owner/Packages'
 import PaymentsPage from '../pages/owner/Payments'
 import SettingsPage from '../pages/owner/Settings'
+import SettingsTest from '../pages/owner/SettingsTest'
 import TrainerDashboard from '../pages/trainer/TrainerDashboard'
 import TrainerClients from '../pages/trainer/TrainerClients'
 import TrainerSchedule from '../pages/trainer/TrainerSchedule'
@@ -55,6 +56,7 @@ const AppRoutes: React.FC = () => (
     <Route path="/owner/packages" element={<ProtectedRoute element={<PackagesPage />} />} />
     <Route path="/owner/payments" element={<ProtectedRoute element={<PaymentsPage />} />} />
     <Route path="/owner/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
+    <Route path="/owner/settings-test" element={<ProtectedRoute element={<SettingsTest />} />} />
     
     {/* Protected Trainer Routes */}
     <Route path="/trainer/dashboard" element={<ProtectedRoute element={<TrainerDashboard />} />} />

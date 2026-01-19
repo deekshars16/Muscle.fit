@@ -91,14 +91,46 @@ const gymService = {
 
   // Fetch gym information
   getGymInfo: async (): Promise<GymInfo> => {
-    const response = await api.get('/gym/current/')
-    return response.data
+    try {
+      console.log('📡 [GymService] Calling api.get("/gym/current/")')
+      const response = await api.get('/gym/current/')
+      console.log('✅ [GymService] Response received:', response)
+      console.log('✅ [GymService] Response status:', response.status)
+      console.log('✅ [GymService] Response data:', response.data)
+      return response.data
+    } catch (err: any) {
+      console.error('❌ [GymService] Error details:', {
+        message: err?.message,
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        data: err?.response?.data,
+        headers: err?.response?.headers,
+        config: err?.config,
+        fullError: err
+      })
+      throw err
+    }
   },
 
   // Update gym information
   updateGymInfo: async (data: Partial<GymInfo>): Promise<GymInfo> => {
-    const response = await api.put('/gym/1/', data)
-    return response.data
+    try {
+      console.log('📡 [GymService] Updating gym info with data:', data)
+      const response = await api.put('/gym/1/', data)
+      console.log('✅ [GymService] Update response:', response)
+      console.log('✅ [GymService] Update response data:', response.data)
+      return response.data
+    } catch (err: any) {
+      console.error('❌ [GymService] Update error:', {
+        message: err?.message,
+        status: err?.response?.status,
+        statusText: err?.response?.statusText,
+        data: err?.response?.data,
+        headers: err?.response?.headers,
+        fullError: err
+      })
+      throw err
+    }
   },
 
   // Fetch working hours

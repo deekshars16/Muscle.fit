@@ -29,6 +29,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    console.error('❌ [API] Request failed:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      url: error.config?.url,
+    })
+    
     // If 401 Unauthorized, token might be expired
     if (error.response?.status === 401) {
       localStorage.removeItem('authToken')

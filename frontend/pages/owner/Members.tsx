@@ -294,7 +294,7 @@ const MembersPage: React.FC = () => {
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+            className="flex items-center gap-2 px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             <Plus className="w-5 h-5" />
             Add Member

@@ -28,39 +28,19 @@ const SettingsPage: React.FC = () => {
     closingTime: '22:00',
   })
 
-  // Fetch gym info and user profile on mount with timeout - non-blocking
+  // Fetch gym info and user profile on mount
   useEffect(() => {
-    let isMounted = true
-    
-    const fetchData = async () => {
+    const loadData = async () => {
       try {
+        setLoading(true)
         setError(null)
-        // Only show loading spinner on initial mount
-        if (!gymInfo && !userProfile) {
-          setLoading(true)
-        }
 
-        // Fetch independently with error handling
-        const gymPromise = gymService.getGymInfo().catch(() => null)
-        const userPromise = userService.getProfile().catch(() => null)
-        
-        // Use timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Request timeout')), 5000)
-        )
-
-        const results = await Promise.race([
-          Promise.all([gymPromise, userPromise]),
-          timeoutPromise
-        ]) as any
-        
-        const [gymData, userProfileData] = results
-
-        if (!isMounted) return
-
+        // Fetch gym info
+        const gymData = await gymService.getGymInfo()
         if (gymData) {
           setGymInfo(gymData)
-          setFormData({
+          setFormData(prev => ({
+            ...prev,
             gymName: gymData.name || '',
             address: gymData.address || '',
             phone: gymData.phone || '',
@@ -68,40 +48,47 @@ const SettingsPage: React.FC = () => {
             city: gymData.city || '',
             state: gymData.state || '',
             postal_code: gymData.postal_code || '',
-            openingTime: '05:00',
-            closingTime: '22:00',
-          })
+          }))
         }
 
-        if (userProfileData) {
-          setUserProfile(userProfileData)
-          if (userProfileData.profile_image) {
-            setProfilePhoto(userProfileData.profile_image)
+        // Fetch user profile (optional, don't fail if this errors)
+        try {
+          const userProfileData = await userService.getProfile()
+          if (userProfileData) {
+            setUserProfile(userProfileData)
+            if (userProfileData.profile_image) {
+              setProfilePhoto(userProfileData.profile_image)
+            }
           }
+        } catch (err) {
+          // Ignore user profile errors - it's optional
+          console.log('User profile not available')
         }
-      } catch (err) {
-        if (isMounted) {
-          console.error('Error loading settings:', err)
-          // Only show error if we have no data at all
-          if (!gymInfo && !userProfile) {
-            setError('Failed to load settings')
-          }
+      } catch (err: any) {
+        // Only set error if gym data failed to load
+        console.error('❌ Failed to load gym data:', {
+          message: err?.message,
+          status: err?.response?.status,
+          statusText: err?.response?.statusText,
+          data: err?.response?.data,
+          url: err?.config?.url,
+          fullError: err
+        })
+        let errorMessage = 'Failed to load gym settings'
+        if (err?.message === 'Network Error') {
+          errorMessage = 'Network error - please check your connection'
+        } else if (err?.response?.status === 404) {
+          errorMessage = 'Gym information not found'
+        } else {
+          errorMessage = `Error: ${err?.message || 'Unknown error'}`
         }
+        setError(errorMessage)
       } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
+        setLoading(false)
       }
     }
 
-    const timer = setTimeout(() => {
-      fetchData()
-    }, 0)
-    
-    return () => {
-      isMounted = false
-      clearTimeout(timer)
-    }
+    loadData()
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -145,23 +132,42 @@ const SettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     try {
-      if (gymInfo) {
-        await gymService.updateGymInfo({
-          name: formData.gymName,
-          address: formData.address,
-          phone: formData.phone,
-          email: formData.email,
-          city: formData.city,
-          state: formData.state,
-          postal_code: formData.postal_code,
-        })
+      setError(null)
+      
+      // Form data should always be available
+      const response = await gymService.updateGymInfo({
+        name: formData.gymName || '',
+        address: formData.address || '',
+        phone: formData.phone || '',
+        email: formData.email || '',
+        city: formData.city || '',
+        state: formData.state || '',
+        postal_code: formData.postal_code || '',
+      })
+      
+      if (response) {
+        setGymInfo(response)
         setIsEditing(false)
         setSuccessMessage('Settings saved successfully')
+        // Clear success message after 3 seconds
         setTimeout(() => setSuccessMessage(null), 3000)
       }
-    } catch (err) {
-      console.error('Error saving settings:', err)
-      setError('Failed to save settings')
+    } catch (err: any) {
+      console.error('❌ Error saving settings:', err)
+      // Show meaningful error message
+      let errorMessage = 'Failed to save settings'
+      if (err?.response?.status === 404) {
+        errorMessage = 'Gym information not found'
+      } else if (err?.response?.status === 400) {
+        errorMessage = `Invalid data: ${err?.response?.data?.detail || 'Please check your input'}`
+      } else if (err?.response?.status === 500) {
+        errorMessage = 'Server error - please try again'
+      } else if (err?.message === 'Network Error') {
+        errorMessage = 'Network error - please check your connection'
+      } else {
+        errorMessage = err?.message || 'Failed to save settings'
+      }
+      setError(errorMessage)
     }
   }
 
