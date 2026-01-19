@@ -43,40 +43,61 @@ const TrainersPage: React.FC = () => {
     return colors[Math.floor(Math.random() * colors.length)]
   }
 
-  // Fetch trainers on mount
+  // Fetch trainers from API in background without blocking UI
   useEffect(() => {
+    let isMounted = true
+    
     const fetchTrainers = async () => {
       try {
-        setLoading(true)
         setError(null)
+        // Only set loading if we don't have data in context yet
+        if (trainers.length === 0) {
+          setLoading(true)
+        }
+        
         const data = await trainerService.getAll()
         
-        const transformedTrainers = data.map((trainer) => ({
-          ...trainer,
-          initials: getInitials(trainer.first_name, trainer.last_name),
-          color: getRandomColor(),
-          members: Math.floor(Math.random() * 30) + 5,
-          rating: 4.5 + Math.random() * 0.5,
-        }))
+        if (!isMounted) return
         
-        // Add fetched trainers to context if not already there
-        transformedTrainers.forEach((trainer) => {
-          if (!trainers.find((t) => t.id === trainer.id)) {
-            addTrainer(trainer as any)
-          }
-        })
+        if (data && data.length > 0) {
+          const transformedTrainers = data.map((trainer) => ({
+            ...trainer,
+            initials: getInitials(trainer.first_name, trainer.last_name),
+            color: getRandomColor(),
+            members: Math.floor(Math.random() * 30) + 5,
+            rating: 4.5 + Math.random() * 0.5,
+          }))
+          
+          // Add trainers from API only if they don't already exist in context
+          transformedTrainers.forEach((trainer) => {
+            const exists = trainers.some((t) => t.id === trainer.id)
+            if (!exists) {
+              addTrainer(trainer as any)
+            }
+          })
+        }
       } catch (err) {
-        console.error('Error fetching trainers:', err)
-        // Don't set error state - use context data if available
+        if (isMounted) {
+          console.error('Error fetching trainers:', err)
+          if (trainers.length === 0) {
+            setError('Failed to load trainers')
+          }
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    if (trainers.length === 0) {
+    // Fetch trainers on initial mount
+    const timer = setTimeout(() => {
       fetchTrainers()
-    } else {
-      setLoading(false)
+    }, 0)
+    
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
     }
   }, [])
 
@@ -167,9 +188,9 @@ const TrainersPage: React.FC = () => {
           addActivity('trainer_added', `Added new trainer ${formData.first_name} ${formData.last_name}`, `Email: ${formData.email}`)
         } catch (apiErr) {
           // Fallback - add locally through context
-          console.log('API failed, adding locally')
+          console.log('🔴 API failed, adding trainer locally')
           const localTrainer: TrainerUI = {
-            id: Math.floor(Math.random() * 10000),
+            id: Date.now(),  // Use timestamp for unique ID
             username: formData.email.split('@')[0],
             first_name: formData.first_name,
             last_name: formData.last_name,
@@ -183,6 +204,7 @@ const TrainersPage: React.FC = () => {
             members: 0,
             rating: 4.5,
           }
+          console.log('✅ Calling addTrainer with:', localTrainer)
           addTrainer(localTrainer as any)
           addActivity('trainer_added', `Added new trainer ${formData.first_name} ${formData.last_name}`, `Email: ${formData.email}`)
         }
@@ -199,11 +221,11 @@ const TrainersPage: React.FC = () => {
   const handleDeleteTrainer = async (id: number | string) => {
     if (confirm('Are you sure you want to delete this trainer?')) {
       try {
-        await trainerService.delete(id)
         const trainerToDelete = (trainers as any[]).find((t) => t.id === id)
+        await trainerService.delete(id)
         deleteTrainer(id)
         if (trainerToDelete) {
-          addActivity('trainer_deleted', `Deleted trainer ${trainerToDelete.first_name} ${trainerToDelete.last_name}`, `Email: ${trainerToDelete.email}`)
+          addActivity('trainer_deleted', `Deleted trainer ${trainerToDelete.first_name} ${trainerToDelete.last_name}`, `Email: ${trainerToDelete.email}`, trainerToDelete)
         }
         setOpenMenuId(null)
       } catch (err) {

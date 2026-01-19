@@ -12,7 +12,7 @@ const Header: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   // Hide header on protected routes
-  if (location.pathname.startsWith('/owner/')) {
+  if (location.pathname.startsWith('/owner/') || location.pathname.startsWith('/member/') || location.pathname.startsWith('/trainer/')) {
     return null
   }
 

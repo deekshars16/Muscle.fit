@@ -21,14 +21,14 @@ const CardStrip: React.FC = () => {
             icon={Dumbbell}
             title="Trainer"
             subtitle="View and manage assigned members"
-            onClick={() => navigate('/auth/register?role=trainer')}
+            onClick={() => navigate('/auth/trainer-login')}
           />
 
           <IconCard
             icon={User}
             title="Member"
             subtitle="See trainer details and membership"
-            onClick={() => navigate('/auth/register?role=member')}
+            onClick={() => navigate('/auth/member-login')}
           />
         </div>
       </div>

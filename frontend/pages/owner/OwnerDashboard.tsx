@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, BarChart3, AlertCircle, TrendingUp, ImagePlus } from 'lucide-react'
+import { Users, BarChart3, TrendingUp, ImagePlus, Trash2, Menu, X } from 'lucide-react'
 import OwnerLayout from '../../components/layout/OwnerLayout'
 import StatCard from '../../components/dashboard/StatCard'
 import Calendar from '../../components/dashboard/Calendar'
 import MembershipChart from '../../components/dashboard/MembershipChart'
-import ActivityFeed from '../../components/dashboard/ActivityFeed'
+
 import LoadingSpinner from '../../components/common/LoadingSpinner'
 import gymService, { DashboardStats, MembershipGrowthData } from '../../services/gymService'
 import trainerService, { Trainer as BackendTrainer } from '../../services/trainerService'
 import userService from '../../services/userService'
-import { useActivity } from '../../context/ActivityContext'
 import { useAppContext } from '../../hooks/useAppContext'
 
 interface Trainer {
@@ -25,8 +24,8 @@ interface Trainer {
 
 const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate()
-  const { activities } = useActivity()
   const { trainers: contextTrainers, members: contextMembers, payments } = useAppContext()
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   
   const colors = ['bg-orange-500', 'bg-cyan-500', 'bg-purple-500', 'bg-pink-500', 'bg-green-500', 'bg-red-500']
 
@@ -90,7 +89,18 @@ const OwnerDashboard: React.FC = () => {
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [galleryImages, setGalleryImages] = useState<Array<{id: string, url: string, description: string}>>([])
+  const [galleryImages, setGalleryImages] = useState<Array<{id: string, url: string, description: string}>>(() => {
+    try {
+      const saved = localStorage.getItem('dashboard_gallery_images')
+      if (saved) {
+        console.log('✅ Loaded gallery images from localStorage')
+        return JSON.parse(saved)
+      }
+    } catch (err) {
+      console.error('❌ Error loading gallery images from localStorage:', err)
+    }
+    return []
+  })
   const [newImage, setNewImage] = useState<{file: File | null, description: string}>({file: null, description: ''})
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,6 +109,16 @@ const OwnerDashboard: React.FC = () => {
       setNewImage({...newImage, file})
     }
   }
+
+  // Persist gallery images to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('dashboard_gallery_images', JSON.stringify(galleryImages))
+      console.log('💾 Saved gallery images to localStorage:', galleryImages.length, 'items')
+    } catch (err) {
+      console.error('❌ Error saving gallery images to localStorage:', err)
+    }
+  }, [galleryImages])
 
   const handleAddPhoto = () => {
     if (newImage.file && newImage.description) {
@@ -120,6 +140,10 @@ const OwnerDashboard: React.FC = () => {
     }
   }
 
+  const handleDeletePhoto = (id: string) => {
+    setGalleryImages(galleryImages.filter(img => img.id !== id))
+  }
+
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
   }
@@ -129,7 +153,10 @@ const OwnerDashboard: React.FC = () => {
     // Calculate stats from context data
     const trainerCount = (contextTrainers as any[]).length || 3
     const memberCount = (contextMembers as any[]).length || 2
-    const totalRevenue = ((payments as any[]) || []).reduce((sum, p) => sum + (p.amount || 0), 0) || 8000
+    
+    // Only sum completed payments
+    const completedPayments = ((payments as any[]) || []).filter(p => p.status === 'completed' || p.status === 'Completed')
+    const totalRevenue = completedPayments.reduce((sum, p) => sum + (p.amount || 0), 0) || 8000
 
     setStats({
       trainers: { count: trainerCount, label: 'Active' },
@@ -177,8 +204,8 @@ const OwnerDashboard: React.FC = () => {
   // }
 
   return (
-    <OwnerLayout>
-      <div className="max-w-7xl mx-auto">
+    <OwnerLayout sidebarOpen={sidebarOpen} onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}>
+      <div className="max-w-7xl mx-auto transition-all duration-300">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
@@ -195,7 +222,7 @@ const OwnerDashboard: React.FC = () => {
         )}
 
         {/* Stats Grid and Calendar Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           {/* 4 Stats Cards in Horizontal Row */}
           {stats ? (
             <>
@@ -216,24 +243,16 @@ const OwnerDashboard: React.FC = () => {
               />
               <StatCard
                 icon={TrendingUp}
-                label="REVENUE"
+                label="COMPLETED PAYMENT"
                 value={`${stats.revenue.currency}${stats.revenue.amount.toLocaleString()}`}
                 subtext={stats.revenue.period}
                 borderColor="border-purple-400"
                 bgGradient="from-purple-50 to-white dark:from-purple-900/20 dark:to-gray-800"
               />
-              <StatCard
-                icon={AlertCircle}
-                label="ALERTS"
-                value={stats.alerts.count}
-                subtext={stats.alerts.label}
-                borderColor="border-red-400"
-                bgGradient="from-red-50 to-white dark:from-red-900/20 dark:to-gray-800"
-              />
             </>
           ) : (
             <>
-              {[1, 2, 3, 4].map((i) => (
+              {[1, 2, 3].map((i) => (
                 <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-6 h-32 animate-pulse" />
               ))}
             </>
@@ -366,10 +385,17 @@ const OwnerDashboard: React.FC = () => {
           {galleryImages.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {galleryImages.map((image) => (
-                <div key={image.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                <div key={image.id} className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow relative group">
                   <img src={image.url} alt={image.description} className="w-full h-48 object-cover" />
-                  <div className="p-3">
-                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{image.description}</p>
+                  <div className="p-3 flex justify-between items-start">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2 flex-1">{image.description}</p>
+                    <button
+                      onClick={() => handleDeletePhoto(image.id)}
+                      className="ml-2 p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                      title="Delete photo"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               ))}
@@ -383,9 +409,6 @@ const OwnerDashboard: React.FC = () => {
             </div>
           )}
         </div>
-
-        {/* Activity Feed */}
-        <ActivityFeed activities={activities} />
       </div>
     </OwnerLayout>
   )

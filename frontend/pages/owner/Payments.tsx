@@ -6,6 +6,7 @@ import paymentService, { Payment as BackendPayment } from '../../services/paymen
 import trainerService from '../../services/trainerService'
 import userService from '../../services/userService'
 import { useAppContext } from '../../hooks/useAppContext'
+import { useActivity } from '../../context/ActivityContext'
 
 interface PaymentUI extends BackendPayment {
   displayName: string
@@ -14,6 +15,7 @@ interface PaymentUI extends BackendPayment {
 
 const PaymentsPage: React.FC = () => {
   const { payments, addPayment, updatePayment, deletePayment, trainers, members } = useAppContext()
+  const { addActivity } = useActivity()
   const [searchTerm, setSearchTerm] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -40,29 +42,44 @@ const PaymentsPage: React.FC = () => {
   const [showPersonDropdown, setShowPersonDropdown] = useState(false)
   const [searchPerson, setSearchPerson] = useState('')
 
-  // Fetch data on mount
+  // Fetch additional trainer/member data on mount in background (context data used immediately)
   useEffect(() => {
+    let isMounted = true
+    
     const fetchData = async () => {
       try {
-        setLoading(true)
         setError(null)
+        // Don't set loading - use context data immediately
 
         const [trainersData, membersData] = await Promise.all([
           trainerService.getAll().catch(() => []),
           userService.getMembers().catch(() => []),
         ])
 
+        if (!isMounted) return
+
         setLocalTrainers(trainersData)
         setLocalMembers(membersData)
       } catch (err) {
-        console.error('Error fetching data:', err)
-        // Use context data if API fails
+        if (isMounted) {
+          console.error('Error fetching data:', err)
+          // Don't show error - context data is available
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    fetchData()
+    const timer = setTimeout(() => {
+      fetchData()
+    }, 0)
+    
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
   }, [])
 
   const filteredPayments = (payments as any[]).filter((payment) =>
@@ -101,21 +118,24 @@ const PaymentsPage: React.FC = () => {
       return
     }
 
+    const personName = formData.selectedPerson.first_name ? `${formData.selectedPerson.first_name} ${formData.selectedPerson.last_name}` : formData.selectedPerson.name
+
     if (editingId) {
       // Update existing payment
       updatePayment(editingId, {
-        user_name: `${formData.selectedPerson.first_name} ${formData.selectedPerson.last_name}`,
+        user_name: personName,
         user_role: formData.gym_role,
         amount: parseFloat(formData.amount),
         date: formData.date,
         method: formData.method,
         status: formData.status,
       } as any)
+      addActivity('payment_edited', `Updated payment for ${personName}`, `Amount: ₹${formData.amount} | Status: ${formData.status}`)
     } else {
       // Add new payment
       const newPayment: any = {
         id: getNextPaymentId(),
-        user_name: formData.selectedPerson.first_name ? `${formData.selectedPerson.first_name} ${formData.selectedPerson.last_name}` : formData.selectedPerson.name,
+        user_name: personName,
         user_role: formData.gym_role,
         amount: parseFloat(formData.amount),
         date: formData.date,
@@ -124,6 +144,7 @@ const PaymentsPage: React.FC = () => {
       }
 
       addPayment(newPayment)
+      addActivity('payment_added', `Added payment for ${personName}`, `Amount: ₹${formData.amount} | Method: ${formData.method}`)
     }
 
     resetForm()
@@ -151,8 +172,12 @@ const PaymentsPage: React.FC = () => {
   }
 
   const handleDeletePayment = (id: string) => {
+    const payment = (payments as any[]).find(p => p.id === id)
     if (confirm('Are you sure you want to delete this payment?')) {
       deletePayment(id)
+      if (payment) {
+        addActivity('payment_deleted', `Deleted payment for ${payment.user_name}`, `Amount: ₹${payment.amount}`)
+      }
       setOpenMenuId(null)
     }
   }
@@ -243,12 +268,7 @@ const PaymentsPage: React.FC = () => {
 
   return (
     <OwnerLayout>
-      {loading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <LoadingSpinner />
-        </div>
-      ) : (
-        <div className="space-y-6">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -639,8 +659,7 @@ const PaymentsPage: React.FC = () => {
             </table>
           </div>
         </div>
-        </div>
-      )}
+      </div>
     </OwnerLayout>
   )
 }

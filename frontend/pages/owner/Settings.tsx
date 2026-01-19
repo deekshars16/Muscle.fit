@@ -28,23 +28,35 @@ const SettingsPage: React.FC = () => {
     closingTime: '22:00',
   })
 
-  // Fetch gym info and user profile on mount
+  // Fetch gym info and user profile on mount with timeout - non-blocking
   useEffect(() => {
+    let isMounted = true
+    
     const fetchData = async () => {
       try {
-        setLoading(true)
         setError(null)
+        // Only show loading spinner on initial mount
+        if (!gymInfo && !userProfile) {
+          setLoading(true)
+        }
 
-        const [gymData, userProfileData] = await Promise.all([
-          gymService.getGymInfo().catch((err) => {
-            console.error('Error fetching gym info:', err)
-            return null
-          }),
-          userService.getProfile().catch((err) => {
-            console.error('Error fetching user profile:', err)
-            return null
-          }),
-        ])
+        // Fetch independently with error handling
+        const gymPromise = gymService.getGymInfo().catch(() => null)
+        const userPromise = userService.getProfile().catch(() => null)
+        
+        // Use timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 5000)
+        )
+
+        const results = await Promise.race([
+          Promise.all([gymPromise, userPromise]),
+          timeoutPromise
+        ]) as any
+        
+        const [gymData, userProfileData] = results
+
+        if (!isMounted) return
 
         if (gymData) {
           setGymInfo(gymData)
@@ -68,14 +80,28 @@ const SettingsPage: React.FC = () => {
           }
         }
       } catch (err) {
-        console.error('Error loading settings:', err)
-        setError('Failed to load settings')
+        if (isMounted) {
+          console.error('Error loading settings:', err)
+          // Only show error if we have no data at all
+          if (!gymInfo && !userProfile) {
+            setError('Failed to load settings')
+          }
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    fetchData()
+    const timer = setTimeout(() => {
+      fetchData()
+    }, 0)
+    
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
+    }
   }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +165,7 @@ const SettingsPage: React.FC = () => {
     }
   }
 
-  if (loading) {
+  if (error && loading && !gymInfo && !userProfile) {
     return (
       <OwnerLayout>
         <div className="flex items-center justify-center min-h-screen">

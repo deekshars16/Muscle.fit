@@ -1,9 +1,12 @@
-import React from 'react'
-import { UserPlus, Edit, Trash2, Users, AlertCircle } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { UserPlus, Edit, Trash2, Users, AlertCircle, Package, RotateCcw, CheckCircle } from 'lucide-react'
 import { Activity } from '../../context/ActivityContext'
 
 interface ActivityFeedProps {
   activities: Activity[]
+  onRestoreMember?: (member: any, activityId: string) => void
+  onRestoreTrainer?: (trainer: any, activityId: string) => void
+  onRestorePackage?: (pkg: any, activityId: string) => void
 }
 
 const getIconAndColor = (action: Activity['action']) => {
@@ -50,12 +53,82 @@ const getIconAndColor = (action: Activity['action']) => {
         text: 'text-orange-600 dark:text-orange-400',
         iconColor: 'text-orange-600 dark:text-orange-400',
       }
-    case 'photo_added':
+    case 'package_created':
       return {
-        icon: AlertCircle,
+        icon: Package,
         bg: 'bg-cyan-50 dark:bg-cyan-900/20',
         text: 'text-cyan-600 dark:text-cyan-400',
         iconColor: 'text-cyan-600 dark:text-cyan-400',
+      }
+    case 'package_edited':
+      return {
+        icon: Edit,
+        bg: 'bg-teal-50 dark:bg-teal-900/20',
+        text: 'text-teal-600 dark:text-teal-400',
+        iconColor: 'text-teal-600 dark:text-teal-400',
+      }
+    case 'package_deleted':
+      return {
+        icon: Trash2,
+        bg: 'bg-rose-50 dark:bg-rose-900/20',
+        text: 'text-rose-600 dark:text-rose-400',
+        iconColor: 'text-rose-600 dark:text-rose-400',
+      }
+    case 'package_cloned':
+      return {
+        icon: Package,
+        bg: 'bg-lime-50 dark:bg-lime-900/20',
+        text: 'text-lime-600 dark:text-lime-400',
+        iconColor: 'text-lime-600 dark:text-lime-400',
+      }
+    case 'photo_added':
+      return {
+        icon: AlertCircle,
+        bg: 'bg-amber-50 dark:bg-amber-900/20',
+        text: 'text-amber-600 dark:text-amber-400',
+        iconColor: 'text-amber-600 dark:text-amber-400',
+      }
+    case 'member_restored':
+      return {
+        icon: CheckCircle,
+        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+        text: 'text-emerald-600 dark:text-emerald-400',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
+      }
+    case 'trainer_restored':
+      return {
+        icon: CheckCircle,
+        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+        text: 'text-emerald-600 dark:text-emerald-400',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
+      }
+    case 'package_restored':
+      return {
+        icon: CheckCircle,
+        bg: 'bg-emerald-50 dark:bg-emerald-900/20',
+        text: 'text-emerald-600 dark:text-emerald-400',
+        iconColor: 'text-emerald-600 dark:text-emerald-400',
+      }
+    case 'payment_added':
+      return {
+        icon: AlertCircle,
+        bg: 'bg-sky-50 dark:bg-sky-900/20',
+        text: 'text-sky-600 dark:text-sky-400',
+        iconColor: 'text-sky-600 dark:text-sky-400',
+      }
+    case 'payment_edited':
+      return {
+        icon: Edit,
+        bg: 'bg-slate-50 dark:bg-slate-900/20',
+        text: 'text-slate-600 dark:text-slate-400',
+        iconColor: 'text-slate-600 dark:text-slate-400',
+      }
+    case 'payment_deleted':
+      return {
+        icon: Trash2,
+        bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/20',
+        text: 'text-fuchsia-600 dark:text-fuchsia-400',
+        iconColor: 'text-fuchsia-600 dark:text-fuchsia-400',
       }
     default:
       return {
@@ -80,6 +153,21 @@ const formatTimestamp = (date: Date): string => {
 }
 
 const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities }) => {
+  const [displayedActivities, setDisplayedActivities] = useState(activities)
+
+  useEffect(() => {
+    setDisplayedActivities(activities)
+  }, [activities])
+
+  // Auto-refresh timestamps every minute
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDisplayedActivities([...activities])
+    }, 60000) // Update every minute
+
+    return () => clearInterval(interval)
+  }, [activities])
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm transition-colors duration-300">
       {/* Header */}
@@ -87,11 +175,13 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities }) => {
 
       {/* Activities List */}
       <div className="space-y-4">
-        {activities.length === 0 ? (
+        {displayedActivities.length === 0 ? (
           <p className="text-center text-gray-500 dark:text-gray-400 py-8">No recent activity</p>
         ) : (
-          activities.map((activity) => {
+          displayedActivities.slice(0, 10).map((activity) => {
             const { icon: IconComponent, bg, text, iconColor } = getIconAndColor(activity.action)
+            const isDeleteAction = activity.action.includes('deleted')
+            
             return (
               <div
                 key={activity.id}
@@ -105,14 +195,37 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ activities }) => {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-900 dark:text-white text-sm">{activity.description}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <p className={`text-xs ${text}`}>
-                      {activity.details}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center gap-2">
+                      {activity.details && (
+                        <p className={`text-xs ${text}`}>
+                          {activity.details}
+                        </p>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">
                       {formatTimestamp(activity.timestamp)}
                     </p>
                   </div>
+                  
+                  {/* Restore Button for Deleted Items */}
+                  {isDeleteAction && activity.deletedData && (
+                    <button
+                      onClick={() => {
+                        if (activity.action === 'member_deleted' && onRestoreMember) {
+                          onRestoreMember(activity.deletedData, activity.id)
+                        } else if (activity.action === 'trainer_deleted' && onRestoreTrainer) {
+                          onRestoreTrainer(activity.deletedData, activity.id)
+                        } else if (activity.action === 'package_deleted' && onRestorePackage) {
+                          onRestorePackage(activity.deletedData, activity.id)
+                        }
+                      }}
+                      className="mt-2 inline-flex items-center gap-1 px-3 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded transition-colors"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      Restore
+                    </button>
+                  )}
                 </div>
               </div>
             )

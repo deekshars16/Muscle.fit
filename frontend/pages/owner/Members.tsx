@@ -47,41 +47,62 @@ const MembersPage: React.FC = () => {
     return colors[Math.floor(Math.random() * colors.length)]
   }
 
-  // Fetch members on mount
+  // Fetch members from API in background without blocking UI
   useEffect(() => {
+    let isMounted = true
+    
     const fetchMembers = async () => {
       try {
-        setLoading(true)
         setError(null)
+        // Only set loading if we don't have data in context yet
+        if (members.length === 0) {
+          setLoading(true)
+        }
+        
         const data = await userService.getMembers()
         
-        const transformedMembers = data.map((member) => ({
-          ...member,
-          initials: getInitials(member.first_name, member.last_name),
-          color: getRandomColor(),
-          joinDate: member.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-          expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          status: 'active' as const,
-        }))
+        if (!isMounted) return
         
-        // Add fetched members to context if not already there
-        transformedMembers.forEach((member) => {
-          if (!(members as any[]).find((m) => m.id === member.id)) {
-            addMember(member as any)
-          }
-        })
+        if (data && data.length > 0) {
+          const transformedMembers = data.map((member) => ({
+            ...member,
+            initials: getInitials(member.first_name, member.last_name),
+            color: getRandomColor(),
+            joinDate: member.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            status: 'active' as const,
+          }))
+          
+          // Add members from API only if they don't already exist in context
+          transformedMembers.forEach((member) => {
+            const exists = (members as any[]).some((m) => m.id === member.id)
+            if (!exists) {
+              addMember(member as any)
+            }
+          })
+        }
       } catch (err) {
-        console.error('Error fetching members:', err)
-        // Don't set error state - use context data if available
+        if (isMounted) {
+          console.error('Error fetching members:', err)
+          if (members.length === 0) {
+            setError('Failed to load members')
+          }
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
-    if ((members as any[]).length === 0) {
+    // Fetch members on initial mount
+    const timer = setTimeout(() => {
       fetchMembers()
-    } else {
-      setLoading(false)
+    }, 0)
+    
+    return () => {
+      isMounted = false
+      clearTimeout(timer)
     }
   }, [])
 
@@ -237,11 +258,11 @@ const MembersPage: React.FC = () => {
   const handleDeleteMember = async (memberId: number | string) => {
     if (confirm('Are you sure you want to delete this member?')) {
       try {
-        await userService.delete(memberId)
         const memberToDelete = (members as any[]).find((m) => m.id === memberId)
+        await userService.delete(memberId)
         deleteMember(memberId)
         if (memberToDelete) {
-          addActivity('member_deleted', `Deleted member ${memberToDelete.first_name} ${memberToDelete.last_name}`, `Email: ${memberToDelete.email}`)
+          addActivity('member_deleted', `Deleted member ${memberToDelete.first_name} ${memberToDelete.last_name}`, `Email: ${memberToDelete.email}`, memberToDelete)
         }
         setOpenMenuId(null)
       } catch (err) {

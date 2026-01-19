@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 interface HeaderProps {
   title?: string
+  sidebarOpen?: boolean
 }
 
 // Mock data for search
@@ -21,7 +22,7 @@ const mockTrainers = [
   { id: '4', name: 'Anita Patel', type: 'trainer' },
 ]
 
-const Header: React.FC<HeaderProps> = ({ title }) => {
+const Header: React.FC<HeaderProps> = ({ title, sidebarOpen = true }) => {
   const navigate = useNavigate()
   const [showNotifications, setShowNotifications] = useState(false)
   const [showAdminMenu, setShowAdminMenu] = useState(false)
@@ -60,8 +61,8 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
   }
 
   return (
-    <div className="fixed top-0 left-64 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 transition-colors duration-300">
-      <div className="h-20 px-8 flex items-center justify-between">
+    <div className="sticky top-0 bg-gray-50 dark:bg-gray-900 z-40">
+      <div className="h-16 px-8 flex items-center justify-between gap-6">
         {/* Left Side - Search Bar */}
         <div className="flex-1 max-w-xl relative">
           <div className="relative">

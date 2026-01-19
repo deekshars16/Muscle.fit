@@ -21,6 +21,7 @@ class User(AbstractUser):
         db_table = 'auth_user'
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+        ordering = ['-created_at']
     
     def __str__(self):
         return f"{self.email} ({self.get_role_display()})"
