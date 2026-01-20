@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { X, ChevronRight, ChevronLeft } from 'lucide-react'
+import { X, ChevronRight, ChevronLeft, Info, Tag, Calendar, List, Image, Eye, Check } from 'lucide-react'
 import { Package } from '../../context/AppContext'
 
 interface CreatePackageModalProps {
@@ -238,11 +238,13 @@ const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
 
   const finalPrice = calculateFinalPrice()
 
+  const STEP_ICONS = [Info, Tag, Calendar, List, Image, Eye]
+
   // Step 0: Template Selection
   if (!templateSelected && step === 1 && !editingPackage) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Choose a Template</h2>
             <button
@@ -298,35 +300,77 @@ const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {editingPackage ? 'Edit Package' : 'Create Package'}
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              Step {step} of {totalSteps}
-            </p>
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header with stepper */}
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                {editingPackage ? 'Edit Package' : 'Create Package'}
+              </h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+            >
+              <X className="w-6 h-6" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
 
-        {/* Progress Bar */}
-        <div className="bg-gray-100 dark:bg-gray-700 h-1">
-          <div
-            className="h-full bg-purple-500 transition-all duration-300"
-            style={{ width: `${(step / totalSteps) * 100}%` }}
-          />
+          <div className="mt-4">
+            <div className="flex items-center w-full">
+              {['Basic Info', 'Pricing', 'Validity', 'Features', 'Media', 'Preview'].map(
+                (label, idx) => {
+                  const s = idx + 1
+                  const isActive = step === s
+                  const isCompleted = step > s
+                  const IconComp = STEP_ICONS[idx]
+                  const connectorActive = step > s
+                  return (
+                    <React.Fragment key={label}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setStep(s)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') setStep(s)
+                        }}
+                        className="flex flex-col items-center w-24 cursor-pointer select-none"
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
+                            isCompleted || isActive
+                              ? 'bg-purple-500 text-white'
+                              : 'border border-gray-300 text-gray-600 bg-white'
+                          }`}
+                        >
+                          {isCompleted ? (
+                            <Check className="w-4 h-4" />
+                          ) : (
+                            <IconComp className="w-4 h-4 text-current" />
+                          )}
+                        </div>
+                        <div className={`mt-2 text-xs ${isActive ? 'text-purple-600 font-semibold' : 'text-gray-500'}`}>
+                          {label}
+                        </div>
+                      </div>
+
+                      {idx < totalSteps - 1 && (
+                        <div
+                          key={`conn-${idx}`}
+                          className={`flex-1 h-px my-4 ${connectorActive ? 'bg-purple-500' : 'bg-gray-200'}`}
+                        />
+                      )}
+                    </React.Fragment>
+                  )
+                }
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-[300px]">
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <div className="space-y-4">
@@ -558,7 +602,9 @@ const CreatePackageModal: React.FC<CreatePackageModalProps> = ({
                 />
                 <button
                   onClick={handleAddFeature}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors font-medium"
+                  className={`px-4 py-2 text-white rounded-lg transition-colors font-medium ${
+                    step === 4 ? 'bg-purple-500 hover:bg-purple-600' : 'bg-orange-500 hover:bg-orange-600'
+                  }`}
                 >
                   Add
                 </button>
