@@ -3,10 +3,11 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface CalendarProps {
   currentDate?: Date
+  selectedDate?: Date | null
   onDateSelect?: (date: Date) => void
 }
 
-const Calendar: React.FC<CalendarProps> = ({ currentDate = new Date(), onDateSelect }) => {
+const Calendar: React.FC<CalendarProps> = ({ currentDate = new Date(), selectedDate = null, onDateSelect }) => {
   const [displayDate, setDisplayDate] = useState(currentDate)
 
   const getDaysInMonth = (date: Date): number => {
@@ -31,6 +32,13 @@ const Calendar: React.FC<CalendarProps> = ({ currentDate = new Date(), onDateSel
   const isCurrentMonth =
     displayDate.getMonth() === today.getMonth() && displayDate.getFullYear() === today.getFullYear()
   const currentDay = isCurrentMonth ? today.getDate() : null
+
+  // If a selectedDate prop is provided and it belongs to the displayed month/year,
+  // compute the selected day to allow highlighting (matches Trainer calendar behavior).
+  const isSelectedMonth = selectedDate
+    ? displayDate.getMonth() === selectedDate.getMonth() && displayDate.getFullYear() === selectedDate.getFullYear()
+    : false
+  const selectedDay = isSelectedMonth && selectedDate ? selectedDate.getDate() : null
 
   const handlePrevMonth = () => {
     setDisplayDate(new Date(displayDate.getFullYear(), displayDate.getMonth() - 1))
@@ -89,7 +97,9 @@ const Calendar: React.FC<CalendarProps> = ({ currentDate = new Date(), onDateSel
               <button
                 onClick={() => handleDayClick(day)}
                 className={`w-full h-10 rounded-lg font-medium text-sm transition-all duration-200 flex items-center justify-center ${
-                  day === currentDay
+                  day === selectedDay
+                    ? 'bg-purple-600 text-white shadow-md hover:bg-purple-700'
+                    : day === currentDay
                     ? 'bg-purple-500 text-white shadow-md hover:bg-purple-600'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 border border-transparent hover:border-gray-200 dark:hover:border-gray-600'
                 }`}

@@ -1,0 +1,335 @@
+================================================================================
+FRONTEND WIRING - IMPLEMENTATION GUIDE
+================================================================================
+
+GOAL: Replace hardcoded dummy data with real API calls.
+SCOPE: 3 dashboard pages (Owner, Trainer, Member)
+TIME: ~30 minutes
+
+NOTE: Do NOT modify UI/styling. Only change data sources.
+
+================================================================================
+1. LOGIN PAGE WIRING
+================================================================================
+
+FIND: Login component (location varies by structure)
+REPLACE DUMMY AUTH with:
+
+  const handleLogin = async (email, password) => {
+    try {
+      const response = await api.post('/auth/login/', {
+        email: email,
+        password: password
+      });
+      
+      // Save token
+      localStorage.setItem('authToken', response.data.access);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Navigate based on role
+      const role = response.data.user.role;
+      navigate(`/${role}/dashboard`);
+      
+    } catch (error) {
+      showError('Login failed: ' + error.response.data.error);
+    }
+  };
+
+VERIFY: Token is in localStorage after login
+VERIFY: Navigation goes to correct dashboard
+
+================================================================================
+2. OWNER DASHBOARD WIRING
+================================================================================
+
+FILE: frontend/pages/owner/OwnerDashboard.tsx
+
+CURRENT STRUCTURE (probably):
+  const [trainers, setTrainers] = useState([DUMMY_DATA]);
+  const [members, setMembers] = useState([DUMMY_DATA]);
+
+CHANGE TO:
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+FETCH DATA:
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await api.get('/users/dashboard/');
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+USE IN RENDER:
+  // Replace: trainers = DUMMY_DATA
+  // With:    trainers = dashboardData?.trainers || []
+  
+  // Replace: members = DUMMY_DATA
+  // With:    members = dashboardData?.members || []
+
+EXPECTED RESPONSE:
+  {
+    "role": "owner",
+    "total_trainers": 1,
+    "total_members": 1,
+    "trainers": [
+      {"id": 6, "email": "trainer@test.com", "first_name": "Trainer", "last_name": "Test", ...}
+    ],
+    "members": [
+      {"id": 7, "email": "member@test.com", "first_name": "Member", "last_name": "Test", ...}
+    ]
+  }
+
+================================================================================
+3. TRAINER DASHBOARD WIRING
+================================================================================
+
+FILE: frontend/pages/trainer/TrainerDashboard.tsx
+
+CURRENT STRUCTURE (probably):
+  const [members, setMembers] = useState([DUMMY_DATA]);
+  const [programs, setPrograms] = useState([DUMMY_DATA]);
+
+CHANGE TO:
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+FETCH DATA:
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await api.get('/users/dashboard/');
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+USE IN RENDER:
+  // Replace: members = DUMMY_DATA
+  // With:    members = dashboardData?.members || []
+  
+  // Replace: programs = DUMMY_DATA
+  // With:    programs = dashboardData?.programs || []
+
+EXPECTED RESPONSE:
+  {
+    "role": "trainer",
+    "total_members": 1,
+    "total_programs": 3,
+    "members": [
+      {"id": 7, "email": "member@test.com", "first_name": "Member", ...}
+    ],
+    "programs": [
+      {"id": 1, "name": "Beginner Strength Training", "description": "...", "price": 99.99, ...},
+      {"id": 2, "name": "Advanced Cardio", "description": "...", "price": 149.99, ...},
+      {"id": 3, "name": "Yoga for Flexibility", "description": "...", "price": 79.99, ...}
+    ]
+  }
+
+================================================================================
+4. MEMBER DASHBOARD WIRING
+================================================================================
+
+FILE: frontend/pages/member/MemberDashboard.tsx
+
+CURRENT STRUCTURE (probably):
+  const [trainer, setTrainer] = useState(DUMMY_DATA);
+  const [programs, setPrograms] = useState([DUMMY_DATA]);
+
+CHANGE TO:
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+FETCH DATA:
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const response = await api.get('/users/dashboard/');
+        setDashboardData(response.data);
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
+
+USE IN RENDER:
+  // Replace: trainer = DUMMY_DATA
+  // With:    trainer = dashboardData?.trainer || null
+  
+  // Replace: programs = DUMMY_DATA
+  // With:    programs = dashboardData?.programs || []
+  
+  // Trainer name: trainer?.first_name + ' ' + trainer?.last_name
+  // Program list: programs.map(prog => prog.name)
+
+EXPECTED RESPONSE:
+  {
+    "role": "member",
+    "trainer": {
+      "id": 6,
+      "email": "trainer@test.com",
+      "first_name": "Trainer",
+      "last_name": "Test",
+      ...
+    },
+    "programs": [
+      {
+        "id": 1,
+        "name": "Beginner Strength Training",
+        "description": "Perfect for beginners...",
+        "price": 99.99,
+        "trainer_name": "Trainer Test",
+        ...
+      },
+      {
+        "id": 2,
+        "name": "Advanced Cardio",
+        "description": "High-intensity cardio...",
+        "price": 149.99,
+        "trainer_name": "Trainer Test",
+        ...
+      }
+    ],
+    "stats": {
+      "workouts_done": 0,
+      "attendance_rate": 0,
+      "progress": 0
+    }
+  }
+
+================================================================================
+5. API SERVICE VERIFICATION
+================================================================================
+
+FILE: frontend/services/api.ts
+
+VERIFY THIS EXISTS:
+  const api = axios.create({
+    baseURL: 'http://127.0.0.1:8000/api'
+  });
+
+VERIFY REQUEST INTERCEPTOR:
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  });
+
+VERIFY ERROR HANDLING:
+  api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+      return Promise.reject(error);
+    }
+  );
+
+If missing, add the interceptors to api.ts
+
+================================================================================
+6. CONTEXT/STATE MANAGEMENT (if using)
+================================================================================
+
+IF using AuthContext:
+  - Make sure authToken is read from localStorage on app start
+  - Make sure login saves token to both localStorage AND context
+  - Make sure logout clears both
+
+IF using AppContext for dashboard data:
+  - Consider storing dashboard data in context if shared between pages
+  - Or just fetch in each dashboard component (simpler)
+
+RECOMMENDATION: Fetch in each dashboard component (simpler, less state management)
+
+================================================================================
+7. TESTING CHECKLIST
+================================================================================
+
+OWNER LOGIN:
+  [ ] Login with owner@test.com / test123
+  [ ] Redirects to /owner/dashboard
+  [ ] Dashboard shows 1 trainer, 1 member
+  [ ] No errors in console
+
+TRAINER LOGIN:
+  [ ] Login with trainer@test.com / test123
+  [ ] Redirects to /trainer/dashboard
+  [ ] Dashboard shows 1 member, 3 programs
+  [ ] Member list contains member@test.com
+  [ ] Program list shows "Beginner Strength Training", "Advanced Cardio", "Yoga for Flexibility"
+
+MEMBER LOGIN:
+  [ ] Login with member@test.com / test123
+  [ ] Redirects to /member/dashboard
+  [ ] Dashboard shows trainer: "Trainer Test"
+  [ ] Program list shows 2 programs: "Advanced Cardio", "Beginner Strength Training"
+  [ ] Stats display correctly (0 workouts, 0% attendance, 0 progress)
+
+LOGOUT:
+  [ ] Logout clears localStorage
+  [ ] Redirects to login page
+  [ ] Login page appears
+
+ERROR HANDLING:
+  [ ] Invalid password → error message shown
+  [ ] No internet → error message shown
+  [ ] Token expired → redirect to login
+
+================================================================================
+COMMON MISTAKES TO AVOID
+================================================================================
+
+❌ DO NOT hardcode data after API call
+   Correct: setMembers(response.data.members)
+   Wrong: const members = [{fake data here}]
+
+❌ DO NOT forget Bearer prefix in token
+   Correct: "Authorization: Bearer eyJhbGc..."
+   Wrong: "Authorization: eyJhbGc..."
+
+❌ DO NOT modify token after receiving it
+   Correct: Save as-is: localStorage.setItem('authToken', response.data.access)
+   Wrong: Don't decode or modify the token string
+
+❌ DO NOT fetch data on every render
+   Correct: useEffect with empty dependencies [] for once-on-mount
+   Wrong: Calling fetch inside render function
+
+❌ DO NOT ignore error responses
+   Correct: Use try/catch and show error message
+   Wrong: Assume request always succeeds
+
+================================================================================
+TIME ESTIMATE
+================================================================================
+
+Each dashboard wiring:  ~5-10 minutes
+Login wiring:           ~5 minutes
+API setup verification: ~5 minutes
+Testing & fixes:        ~10 minutes
+
+TOTAL:                  ~30-35 minutes
+
+================================================================================

@@ -39,9 +39,8 @@ const userService = {
   // Get all members
   getMembers: async (): Promise<Member[]> => {
     try {
-      const response = await api.get('/users/')
-      const users = response.data.results || response.data
-      return users.filter((user: User) => user.role === 'member')
+      const response = await api.get('/users/members/')
+      return response.data.results || response.data
     } catch (error) {
       console.error('Failed to fetch members:', error)
       return []

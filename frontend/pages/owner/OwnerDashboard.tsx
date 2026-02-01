@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Users, BarChart3, TrendingUp, ImagePlus, Trash2, Menu, X } from 'lucide-react'
+import { Users, BarChart3, TrendingUp, ImagePlus, Trash2, Menu, X, Loader } from 'lucide-react'
 import OwnerLayout from '../../components/layout/OwnerLayout'
 import StatCard from '../../components/dashboard/StatCard'
 import Calendar from '../../components/dashboard/Calendar'
@@ -10,6 +10,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner'
 import gymService, { DashboardStats, MembershipGrowthData } from '../../services/gymService'
 import trainerService, { Trainer as BackendTrainer } from '../../services/trainerService'
 import userService from '../../services/userService'
+import api from '../../services/api'
 import { useAppContext } from '../../hooks/useAppContext'
 
 interface Trainer {
@@ -101,6 +102,57 @@ const OwnerDashboard: React.FC = () => {
     }
     return []
   })
+
+  // Fetch dashboard data from API (prefer gymService endpoints)
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true)
+
+        // Primary source: gymService dashboard stats
+        const statsData = await gymService.getDashboardStats().catch(() => null)
+        if (statsData) {
+          setStats(statsData)
+        } else {
+          // Fallback to legacy users/dashboard endpoint if available
+          try {
+            const response = await api.get('/users/dashboard/')
+            const data = response.data
+            if (data.role === 'owner') {
+              const formattedTrainers = (data.trainers || []).map((t: any, idx: number) => ({
+                id: t.id,
+                initials: `${t.first_name?.charAt(0) || ''}${t.last_name?.charAt(0) || ''}`.toUpperCase(),
+                name: `${t.first_name} ${t.last_name}`.trim(),
+                specialty: 'Trainer',
+                rating: 4.5,
+                color: colors[idx % colors.length],
+                email: t.email,
+              }))
+
+              setTrainers(formattedTrainers)
+              setMembers(data.members || [])
+            }
+          } catch (legacyErr) {
+            console.warn('⚠️ Legacy dashboard endpoint failed:', legacyErr)
+          }
+        }
+
+        // Also try to fetch membership growth data
+        const mg = await gymService.getMembershipGrowth().catch(() => null)
+        if (mg) setMembershipData(mg)
+
+        setError(null)
+      } catch (err: any) {
+        console.error('❌ Failed to fetch dashboard:', err)
+        setError(err.response?.data?.detail || 'Failed to load dashboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboard()
+  }, [])
+
   const [newImage, setNewImage] = useState<{file: File | null, description: string}>({file: null, description: ''})
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -275,7 +327,7 @@ const OwnerDashboard: React.FC = () => {
 
           {/* Sidebar - Calendar */}
           <div>
-            <Calendar onDateSelect={handleDateSelect} />
+            <Calendar onDateSelect={handleDateSelect} selectedDate={selectedDate} />
           </div>
         </div>
 

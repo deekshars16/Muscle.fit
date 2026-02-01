@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Program
+from .models import Program, ProgramAssignment
 
 class ProgramSerializer(serializers.ModelSerializer):
     # Frontend field mappings
@@ -15,16 +15,18 @@ class ProgramSerializer(serializers.ModelSerializer):
     thumbnailUrl = serializers.SerializerMethodField()
     videoUrl = serializers.CharField(default=None, required=False, allow_null=True)
     status = serializers.SerializerMethodField()
+    trainer_name = serializers.CharField(source='trainer.first_name', read_only=True)
+    enrollments = serializers.SerializerMethodField()
     
     class Meta:
         model = Program
         fields = (
-            'id', 'name', 'type', 'description', 
+            'id', 'name', 'type', 'description', 'trainer_name', 'trainer',
             'mrp', 'sellingPrice', 'discountType', 'discountValue', 'finalPrice',
             'validityNumber', 'validityUnit', 'features', 'thumbnailUrl', 'videoUrl', 'status',
-            'program_type', 'difficulty_level', 'duration_weeks', 'is_active', 'created_at'
+            'program_type', 'difficulty_level', 'duration_weeks', 'price', 'is_active', 'created_at', 'updated_at', 'enrollments'
         )
-        read_only_fields = ('id', 'created_at')
+        read_only_fields = ('id', 'created_at', 'updated_at', 'trainer_name', 'enrollments')
     
     def get_type(self, obj):
         """Map program_type to frontend type (Gym / PT / Classes)"""
@@ -100,4 +102,19 @@ class ProgramSerializer(serializers.ModelSerializer):
     
     def get_status(self, obj):
         """Convert boolean is_active to status string"""
-        return 'Active' if obj.is_active else 'Inactive'
+        return 'active' if obj.is_active else 'inactive'
+    
+    def get_enrollments(self, obj):
+        """Get count of enrolled members"""
+        return obj.assignments.count()
+
+
+class ProgramAssignmentSerializer(serializers.ModelSerializer):
+    member_name = serializers.CharField(source='member.first_name', read_only=True)
+    member_email = serializers.CharField(source='member.email', read_only=True)
+    program_name = serializers.CharField(source='program.name', read_only=True)
+    
+    class Meta:
+        model = ProgramAssignment
+        fields = ('id', 'program', 'member', 'member_name', 'member_email', 'program_name', 'assigned_at')
+        read_only_fields = ('id', 'assigned_at', 'member_name', 'member_email', 'program_name')

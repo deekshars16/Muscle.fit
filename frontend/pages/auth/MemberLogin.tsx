@@ -9,7 +9,7 @@ const MemberLogin: React.FC = () => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     console.log('Member login form submitted')
     
@@ -23,34 +23,23 @@ const MemberLogin: React.FC = () => {
       return
     }
 
-    // Validate credentials
-    if (email !== 'member@muscles.fit' || password !== 'member123') {
-      setError('Invalid email or password')
-      setLoading(false)
-      return
-    }
-
-    try {
-      console.log('Saving member auth to localStorage...')
-      localStorage.setItem('authToken', 'member_token_' + Date.now())
-      localStorage.setItem('role', 'member')
-      localStorage.setItem('userEmail', email)
-      localStorage.setItem('userName', 'David Kim')
-      
-      console.log('Member token saved. authToken:', localStorage.getItem('authToken'))
-      console.log('Navigating to member dashboard...')
-      
-      setLoading(false)
-      
-      // Navigate to member dashboard
+    // Dummy authentication - accept any email/password combination
+    console.log('Dummy login - navigating to member dashboard')
+    
+    // Save dummy auth data to localStorage
+    localStorage.setItem('authToken', 'dummy-token-' + Date.now())
+    localStorage.setItem('role', 'member')
+    localStorage.setItem('userEmail', email)
+    localStorage.setItem('userFirstName', 'David')
+    localStorage.setItem('userLastName', 'Kim')
+    
+    console.log('Member auth saved to localStorage')
+    setLoading(false)
+    
+    // Navigate to member dashboard
+    setTimeout(() => {
       navigate('/member/dashboard', { replace: true })
-      
-      console.log('Member navigate called')
-    } catch (err) {
-      console.error('Error:', err)
-      setError('Login failed')
-      setLoading(false)
-    }
+    }, 300)
   }
 
   return (
@@ -77,7 +66,7 @@ const MemberLogin: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="member@muscle.fit"
+                  placeholder="member@muscles.fit"
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-100 dark:focus:ring-purple-900 transition"
                   required
                 />

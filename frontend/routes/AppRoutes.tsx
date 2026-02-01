@@ -28,16 +28,22 @@ import MemberProgress from '../pages/member/MemberProgress'
 import MemberProfile from '../pages/member/MemberProfile'
 
 // Protected Route Component
-const ProtectedRoute: React.FC<{ element: React.ReactNode }> = ({ element }) => {
+const ProtectedRoute: React.FC<{ element: React.ReactNode; role?: string }> = ({ element, role }) => {
   const authToken = localStorage.getItem('authToken')
-  console.log('ProtectedRoute check - authToken:', authToken)
+  const userRole = localStorage.getItem('role')
   
   if (!authToken) {
-    console.log('No auth token, redirecting to login')
+    console.log('⚠️ No auth token found, redirecting to login')
+    // Redirect to appropriate login based on role
+    if (role === 'trainer') {
+      return <Navigate to="/auth/trainer-login" replace />
+    } else if (role === 'member') {
+      return <Navigate to="/auth/member-login" replace />
+    }
     return <Navigate to="/auth/owner-login" replace />
   }
   
-  console.log('Auth token found, rendering element')
+  console.log('✅ Auth token found:', authToken.substring(0, 20) + '...', 'role:', userRole)
   return <>{element}</>
 }
 
@@ -50,31 +56,31 @@ const AppRoutes: React.FC = () => (
     <Route path="/auth/member-login" element={<MemberLogin />} />
     
     {/* Protected Owner Routes */}
-    <Route path="/owner/dashboard" element={<ProtectedRoute element={<OwnerDashboard />} />} />
-    <Route path="/owner/trainers" element={<ProtectedRoute element={<TrainersPage />} />} />
-    <Route path="/owner/members" element={<ProtectedRoute element={<MembersPage />} />} />
-    <Route path="/owner/packages" element={<ProtectedRoute element={<PackagesPage />} />} />
-    <Route path="/owner/payments" element={<ProtectedRoute element={<PaymentsPage />} />} />
-    <Route path="/owner/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
-    <Route path="/owner/settings-test" element={<ProtectedRoute element={<SettingsTest />} />} />
+    <Route path="/owner/dashboard" element={<ProtectedRoute role="owner" element={<OwnerDashboard />} />} />
+    <Route path="/owner/trainers" element={<ProtectedRoute role="owner" element={<TrainersPage />} />} />
+    <Route path="/owner/members" element={<ProtectedRoute role="owner" element={<MembersPage />} />} />
+    <Route path="/owner/packages" element={<ProtectedRoute role="owner" element={<PackagesPage />} />} />
+    <Route path="/owner/payments" element={<ProtectedRoute role="owner" element={<PaymentsPage />} />} />
+    <Route path="/owner/settings" element={<ProtectedRoute role="owner" element={<SettingsPage />} />} />
+    <Route path="/owner/settings-test" element={<ProtectedRoute role="owner" element={<SettingsTest />} />} />
     
     {/* Protected Trainer Routes */}
-    <Route path="/trainer/dashboard" element={<ProtectedRoute element={<TrainerDashboard />} />} />
-    <Route path="/trainer/clients" element={<ProtectedRoute element={<TrainerClients />} />} />
-    <Route path="/trainer/schedule" element={<ProtectedRoute element={<TrainerSchedule />} />} />
-    <Route path="/trainer/programs" element={<ProtectedRoute element={<TrainerPrograms />} />} />
-    <Route path="/trainer/analytics" element={<ProtectedRoute element={<TrainerAnalytics />} />} />
-    <Route path="/trainer/settings" element={<ProtectedRoute element={<TrainerSettings />} />} />
+    <Route path="/trainer/dashboard" element={<ProtectedRoute role="trainer" element={<TrainerDashboard />} />} />
+    <Route path="/trainer/clients" element={<ProtectedRoute role="trainer" element={<TrainerClients />} />} />
+    <Route path="/trainer/schedule" element={<ProtectedRoute role="trainer" element={<TrainerSchedule />} />} />
+    <Route path="/trainer/programs" element={<ProtectedRoute role="trainer" element={<TrainerPrograms />} />} />
+    <Route path="/trainer/analytics" element={<ProtectedRoute role="trainer" element={<TrainerAnalytics />} />} />
+    <Route path="/trainer/settings" element={<ProtectedRoute role="trainer" element={<TrainerSettings />} />} />
     
     {/* Protected Member Routes */}
-    <Route path="/member/dashboard" element={<ProtectedRoute element={<MemberDashboard />} />} />
-    <Route path="/member/membership" element={<ProtectedRoute element={<MemberMembership />} />} />
-    <Route path="/member/trainer" element={<ProtectedRoute element={<MemberTrainer />} />} />
-    <Route path="/member/workouts" element={<ProtectedRoute element={<MemberWorkouts />} />} />
-    <Route path="/member/schedule" element={<ProtectedRoute element={<MemberSchedule />} />} />
-    <Route path="/member/attendance" element={<ProtectedRoute element={<MemberAttendance />} />} />
-    <Route path="/member/progress" element={<ProtectedRoute element={<MemberProgress />} />} />
-    <Route path="/member/profile" element={<ProtectedRoute element={<MemberProfile />} />} />
+    <Route path="/member/dashboard" element={<ProtectedRoute role="member" element={<MemberDashboard />} />} />
+    <Route path="/member/membership" element={<ProtectedRoute role="member" element={<MemberMembership />} />} />
+    <Route path="/member/trainer" element={<ProtectedRoute role="member" element={<MemberTrainer />} />} />
+    <Route path="/member/workouts" element={<ProtectedRoute role="member" element={<MemberWorkouts />} />} />
+    <Route path="/member/schedule" element={<ProtectedRoute role="member" element={<MemberSchedule />} />} />
+    <Route path="/member/attendance" element={<ProtectedRoute role="member" element={<MemberAttendance />} />} />
+    <Route path="/member/progress" element={<ProtectedRoute role="member" element={<MemberProgress />} />} />
+    <Route path="/member/profile" element={<ProtectedRoute role="member" element={<MemberProfile />} />} />
     
     {/* Catch all */}
     <Route path="*" element={<Navigate to="/" replace />} />

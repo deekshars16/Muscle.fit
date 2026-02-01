@@ -1,4 +1,5 @@
 import api from './api'
+import { Program } from './programService'
 
 export interface Trainer {
   id: number
@@ -17,6 +18,16 @@ export interface Trainer {
 export interface TrainerListResponse {
   data: Trainer[]
   total?: number
+}
+
+export interface CreateProgramData {
+  name: string
+  program_type: 'cardio' | 'muscle' | 'yoga' | 'strength' | 'flexibility'
+  description: string
+  duration_weeks: number
+  difficulty_level: 'beginner' | 'intermediate' | 'advanced'
+  price: number
+  is_active: boolean
 }
 
 // Trainer Service API calls
@@ -64,6 +75,17 @@ const trainerService = {
   // Delete trainer
   delete: async (id: number): Promise<void> => {
     await api.delete(`/trainers/${id}/`)
+  },
+
+  // Create program for logged-in trainer
+  createProgram: async (data: CreateProgramData): Promise<Program> => {
+    try {
+      const response = await api.post('/trainers/programs/', data)
+      return response.data
+    } catch (error: any) {
+      console.error('Create trainer program error:', error?.response?.data || error?.message)
+      throw error
+    }
   },
 }
 

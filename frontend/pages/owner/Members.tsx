@@ -198,6 +198,7 @@ const MembersPage: React.FC = () => {
           last_name: formData.last_name,
           email: formData.email,
           phone: formData.phone,
+          expiryDate: formData.expiryDate,
         } as any)
         
         addActivity('member_edited', `Edited member ${formData.first_name} ${formData.last_name}`, `Email: ${formData.email}`)
@@ -219,7 +220,7 @@ const MembersPage: React.FC = () => {
             initials: getInitials(formData.first_name, formData.last_name),
             color: getRandomColor(),
             joinDate: new Date().toISOString().split('T')[0],
-            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            expiryDate: formData.expiryDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             status: 'active',
           }
           addMember(newMemberUI as any)
@@ -240,7 +241,7 @@ const MembersPage: React.FC = () => {
             initials: getInitials(formData.first_name, formData.last_name),
             color: getRandomColor(),
             joinDate: new Date().toISOString().split('T')[0],
-            expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            expiryDate: formData.expiryDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             status: 'active',
           }
           addMember(localMember as any)
@@ -508,6 +509,17 @@ const MembersPage: React.FC = () => {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="Enter phone number"
+                  className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiry Date</label>
+                <input
+                  type="date"
+                  value={formData.expiryDate}
+                  onChange={(e) => setFormData({ ...formData, expiryDate: e.target.value })}
+                  placeholder="Select expiry date"
                   className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
                 />
               </div>

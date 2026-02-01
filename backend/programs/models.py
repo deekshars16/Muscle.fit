@@ -1,4 +1,7 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class Program(models.Model):
     PROGRAM_TYPES = [
@@ -9,6 +12,7 @@ class Program(models.Model):
         ('flexibility', 'Flexibility'),
     ]
     
+    trainer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='programs', limit_choices_to={'role': 'trainer'})
     name = models.CharField(max_length=100)
     program_type = models.CharField(max_length=20, choices=PROGRAM_TYPES)
     description = models.TextField()
@@ -27,3 +31,20 @@ class Program(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.get_program_type_display()})"
+
+
+class ProgramAssignment(models.Model):
+    """Track which members are assigned to which programs by trainers"""
+    program = models.ForeignKey(Program, on_delete=models.CASCADE, related_name='assignments')
+    member = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assigned_programs', limit_choices_to={'role': 'member'})
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ('program', 'member')
+        ordering = ['-assigned_at']
+        verbose_name = 'Program Assignment'
+        verbose_name_plural = 'Program Assignments'
+    
+    def __str__(self):
+        return f"{self.member.email} -> {self.program.name}"

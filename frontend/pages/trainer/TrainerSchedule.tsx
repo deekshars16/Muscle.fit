@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search, BarChart3, Users, Settings, Bell, Dumbbell, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import TrainerLayout from '../../components/layout/TrainerLayout'
@@ -7,20 +7,38 @@ const TrainerSchedule: React.FC = () => {
   const navigate = useNavigate()
   const [currentDate, setCurrentDate] = useState(new Date(2024, 0, 16))
 
-  // Schedule data
-  const sessions = [
-    { date: 13, client: 'Sarah Miller', time: '9:00 AM', type: 'In-Person' },
-    { date: 14, client: 'Jennifer Wilson', time: '10:00 AM', type: 'In-Person' },
-    { date: 14, client: 'Mike Johnson', time: '2:00 PM', type: 'Virtual' },
-    { date: 15, client: 'David Brown', time: '8:30 AM', type: 'In-Person' },
-    { date: 15, client: 'Lisa Anderson', time: '11:00 AM', type: 'Virtual' },
-    { date: 15, client: 'Emma Davis', time: '4:00 PM', type: 'In-Person' },
-    { date: 16, client: 'Alex Chen', time: '9:00 AM', type: 'In-Person' },
-    { date: 17, client: 'Jennifer Wilson', time: '10:00 AM', type: 'In-Person' },
-    { date: 18, client: 'Robert Taylor', time: '3:00 PM', type: 'Virtual' },
-  ]
+  // Schedule data (fetched from backend)
+  const [sessions, setSessions] = useState<Array<any>>([])
+  const [loadingSessions, setLoadingSessions] = useState(false)
 
-  const todaySessions = sessions.filter(s => s.date === 16)
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      setLoadingSessions(true)
+      try {
+        const resp = await (await import('../../services/api')).default.get('/programs/sessions/')
+        if (!mounted) return
+        // map backend sessions into UI-friendly shape
+        const data = resp.data.map((s: any) => ({
+          id: s.id,
+          date: new Date(s.scheduled_date).getDate(),
+          client: s.client_name || `${s.client}`,
+          time: new Date(s.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          type: s.session_type === 'virtual' ? 'Virtual' : 'In-Person',
+          raw: s,
+        }))
+        setSessions(data)
+      } catch (err) {
+        console.error('Failed to load sessions', err)
+      } finally {
+        setLoadingSessions(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
+
+  const todaySessions = sessions.filter(s => s.date === new Date().getDate())
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()

@@ -4,14 +4,14 @@ import { Mail, Lock } from 'lucide-react'
 
 const OwnerLogin: React.FC = () => {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('owner@muscles.fit')
+  const [password, setPassword] = useState('owner123')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    console.log('Form submitted')
+    console.log('🔐 Login form submitted')
     
     setError('')
     setLoading(true)
@@ -24,23 +24,28 @@ const OwnerLogin: React.FC = () => {
     }
 
     try {
-      console.log('Saving to localStorage...')
-      localStorage.setItem('authToken', 'owner_token_' + Date.now())
+      // Simple token generation - just store in localStorage
+      const token = 'owner_token_' + Date.now()
+      
+      console.log('✅ Login successful')
+      console.log('💾 Saving to localStorage...')
+      
+      localStorage.setItem('authToken', token)
       localStorage.setItem('role', 'owner')
       localStorage.setItem('userEmail', email)
       
-      console.log('Token saved. authToken:', localStorage.getItem('authToken'))
-      console.log('Navigating to dashboard...')
+      console.log('✅ Token saved:', token)
+      console.log('🚀 Navigating to dashboard...')
       
-      setLoading(false)
+      // Add a small delay to ensure localStorage is written
+      setTimeout(() => {
+        setLoading(false)
+        navigate('/owner/dashboard', { replace: true })
+      }, 100)
       
-      // Navigate to dashboard
-      navigate('/owner/dashboard', { replace: true })
-      
-      console.log('Navigate called')
     } catch (err) {
-      console.error('Error:', err)
-      setError('Login failed')
+      console.error('❌ Error:', err)
+      setError('Login failed. Please try again.')
       setLoading(false)
     }
   }
@@ -69,7 +74,7 @@ const OwnerLogin: React.FC = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="owner@muscle.fit"
+                  placeholder="owner@muscles.fit"
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 focus:ring-2 focus:ring-purple-100 dark:focus:ring-purple-900 transition"
                   required
                 />

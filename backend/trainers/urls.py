@@ -7,4 +7,5 @@ router.register(r'', TrainerViewSet, basename='trainer')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('programs/', TrainerViewSet.as_view({'post': 'programs'}), name='trainer-programs'),
 ]

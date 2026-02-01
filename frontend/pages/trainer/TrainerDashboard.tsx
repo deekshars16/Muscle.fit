@@ -1,14 +1,28 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, BarChart3, Users, Settings, Bell, Dumbbell } from 'lucide-react'
+import { Search, BarChart3, Users, Settings, Bell, Dumbbell, Loader } from 'lucide-react'
 import TrainerLayout from '../../components/layout/TrainerLayout'
+import api from '../../services/api'
+import gymService from '../../services/gymService'
 import { useAppContext } from '../../hooks/useAppContext'
+
+interface Member {
+  id: number
+  email: string
+  first_name: string
+  last_name: string
+}
 
 const TrainerDashboard: React.FC = () => {
   const navigate = useNavigate()
+  const { members: contextMembers } = useAppContext()
   const [currentDate, setCurrentDate] = useState(new Date(2026, 0, 16))
   const [selectedDate, setSelectedDate] = useState<number | null>(16)
   const [hoveredDay, setHoveredDay] = useState<string | null>(null)
+  const [members, setMembers] = useState<Member[]>([])
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Chart data
   const chartData = [
@@ -20,6 +34,56 @@ const TrainerDashboard: React.FC = () => {
     { day: 'Sat', clients: 60, sessions: 32 },
     { day: 'Sun', clients: 35, sessions: 18 },
   ]
+
+  // Use members from AppContext
+  useEffect(() => {
+    // Display first 4 members from context
+    const displayMembers = contextMembers.slice(0, 4)
+    setMembers(displayMembers)
+    console.log('Displaying members from AppContext:', displayMembers)
+  }, [contextMembers])
+
+  // Fetch dashboard data from API (support newer gymService endpoints)
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true)
+
+        // Try gymService stats first
+        const statsData = await gymService.getDashboardStats().catch(() => null)
+        if (statsData) {
+          setDashboardData(statsData)
+        } else {
+          // Fallback to legacy users/dashboard endpoint
+          try {
+            const response = await api.get('/users/dashboard/')
+            const data = response.data
+            if (data.role === 'trainer') {
+              setDashboardData(data)
+              const formattedMembers = (data.members || []).map((m: any) => ({
+                id: m.id,
+                email: m.email,
+                first_name: m.first_name,
+                last_name: m.last_name,
+              }))
+              setMembers(formattedMembers)
+            }
+          } catch (legacyErr) {
+            console.warn('⚠️ Legacy trainer dashboard endpoint failed:', legacyErr)
+          }
+        }
+
+        setError(null)
+      } catch (err: any) {
+        console.error('❌ Failed to fetch dashboard:', err)
+        setError(err.response?.data?.detail || 'Failed to load dashboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboard()
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem('authToken')
@@ -266,37 +330,38 @@ const TrainerDashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* Active Clients and Recent Activity */}
+          {/* Active Members and Recent Activity */}
           <div className="mt-8 grid grid-cols-3 gap-6">
-            {/* Active Clients */}
+            {/* Active Members */}
             <div className="col-span-2 bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Active Clients</h2>
-                <a href="#" className="text-purple-600 dark:text-purple-400 text-sm font-medium hover:underline">View All</a>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Active Members</h2>
+                <a href="/trainer/members" className="text-purple-600 dark:text-purple-400 text-sm font-medium hover:underline">View All</a>
               </div>
               <div className="space-y-4">
-                {[
-                  { name: 'Jennifer Wilson', program: 'Weight Loss', time: 'Today, 2:00 PM', progress: 75 },
-                  { name: 'David Brown', program: 'Muscle Gain', time: 'Tomorrow, 10:00 AM', progress: 60 },
-                  { name: 'Lisa Anderson', program: 'Flexibility', time: 'Today, 4:30 PM', progress: 90 },
-                  { name: 'Robert Taylor', program: 'Cardio', time: 'Wed, 9:00 AM', progress: 45 },
-                ].map((client, index) => (
-                  <div key={index} className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-gray-900 dark:text-white text-sm">{client.name}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{client.program} • {client.time}</p>
-                        <div className="mt-2 w-40 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-600" style={{ width: `${client.progress}%` }}></div>
+                {members.length > 0 ? (
+                  members.map((member, index) => (
+                    <div key={member.id} className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Users className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white text-sm">
+                            {member.first_name} {member.last_name}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">{member.email}</p>
+                          <div className="mt-2 w-40 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                            <div className="h-full bg-purple-600" style={{ width: `${(index + 1) * 20}%` }}></div>
+                          </div>
                         </div>
                       </div>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white ml-4">{(index + 1) * 20}%</span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white ml-4">{client.progress}%</span>
-                  </div>
-                ))}
+                  ))
+                ) : (
+                  <p className="text-gray-500 dark:text-gray-400">No members found</p>
+                )}
               </div>
             </div>
 

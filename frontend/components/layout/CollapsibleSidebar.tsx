@@ -48,7 +48,7 @@ const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({ role }) => {
       case 'trainer':
         return [
           { label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" />, path: '/trainer/dashboard' },
-          { label: 'Clients', icon: <Users className="w-5 h-5" />, path: '/trainer/clients' },
+          { label: 'Members', icon: <Users className="w-5 h-5" />, path: '/trainer/clients' },
           { label: 'Schedule', icon: <Calendar className="w-5 h-5" />, path: '/trainer/schedule' },
           { label: 'Programs', icon: <BookOpen className="w-5 h-5" />, path: '/trainer/programs' },
           { label: 'Analytics', icon: <BarChart3 className="w-5 h-5" />, path: '/trainer/analytics' },
